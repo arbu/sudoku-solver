@@ -1,0 +1,92 @@
+(none
+; Sudoku Solver
+; this is simple approach of a sudoku solver using backtracking (written in None, http://www.nonelang.org/)
+
+; print the sudoku in a pretty style
+(function print-sudoku (sudoku)
+    (io.write "+-------+-------+-------+\n")
+    ; just iterate over each row and every number in it and print a boarder after every third row/column
+    (foreach (i row) (ipairs sudoku)
+        (io.write "|")
+        (foreach (j num) (ipairs row)
+            (io.write (string.format " %d" num))
+            (if (j % 3 == 0) ; 
+                (io.write " |")))
+        (io.write "\n")
+        (if (i % 3 == 0)
+            (io.write "+-------+-------+-------+\n"))))
+
+; generate a table of tables (2-dimensional array) and fill it with 'value'
+(function array2d (rows cols value)
+    (var result (table))
+    (loop i (1 rows)
+        (result # i = (table))
+        (loop j (1 cols)
+            (result # i # j = value)))
+    result)
+
+; increment the 2-dimensional index ([1,1],[1,2],...,[9,9])
+(function inc (index)
+    ; increment y and if it's >9
+    (if ((++ (index # 2)) > 9) (do
+        ; then increment x and reset y to 1
+        (++ (index # 1))
+        (index # 2 = 1))))
+
+; decrement the 2-dimensional index
+(function dec (index)
+    (if ((-- (index # 2)) < 1) (do
+        (-- (index # 1))
+        (index # 2 = 9))))
+
+; returns a set of all numbers aren't available anymore at that position
+(function get-set (row col ...)
+    (var set (table))
+    ; calculate the coordinates of the cell (3x3 square) this field is in
+    (var cell-row (row - ((row - 1) % 3)))
+    (var cell-col (col - ((col - 1) % 3)))
+    (foreach (_ sudoku) (pairs ($ ...))
+        (foreach (_ val) (pairs (sudoku # row)) ; all values in the row
+            (if (val != 0)
+                (set # val = true))) ; setting the position of the value to true is easyer and faster
+                                     ; then checking if the value was in the table before. also, it's
+                                     ; easyer to handle in the solver
+        (foreach (_ r) (pairs sudoku) ; all values in the column
+            (if (r # col != 0)
+                (set # (r # col) = true)))
+        (loop i (cell-row (cell-row + 2)) ; all values in the cell
+            (loop j (cell-col (cell-col + 2))
+                (if (sudoku # i # j != 0)
+                    (set # (sudoku # i # j) = true)))))
+    set)
+
+; the core function. takes and unsolved sudoku and, hopefully, returns a solved one (throws an error if not)
+(function solve-sudoku (sudoku)
+    (var result (array2d 9 9 0))
+    (for ((var index ($ 1 1)) (index # 1 <= 9) (inc index))
+        (if (sudoku # (index # 1) # (index # 2) == 0)
+            (do
+                (var set (get-set (index # 1) (index # 2) sudoku result)) ; values that aren't available
+                (var next (result # (index # 1) # (index # 2) + 1)) ; possible next number (if not yet
+                                                                    ; set: 1, else last one incresed)
+                (while (next < 10 and (set # next)) (++ next)) ; increase until the value is not in set
+                (if (next < 10)
+                    (result # (index # 1) # (index # 2) = next) ; there is a valid value: set it and continue
+                    (do                                         ; there is no valid value: go back
+                        (while true ; go back back and skip values that are preset
+                            (result # (index # 1) # (index # 2) = 0) ; reset all values on the way back
+                            (dec index)
+                            (if (index # 1 < 1) (error "Not solvable!"))
+                            (if (sudoku # (index # 1) # (index # 2) == 0)
+                                (do
+                                    (dec index) ; final decrease, since the for-loop will increase it
+                                    (break)))))))))
+    (table-each (i row) (pairs sudoku) ; now, merge the result with the given values
+        (table-each (j v) (pairs row)
+            (if (v > 0) v (result # i # j)))))
+
+; export the functions
+($
+    (print-sudoku := print-sudoku)
+    (solve-sudoku := solve-sudoku))
+)

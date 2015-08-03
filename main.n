@@ -1,0 +1,29 @@
+(none
+
+(var solver (require "solver"))
+
+; define an example sudoku as table of tables
+(var test-sudoku ($
+        ($ 0 5 0  0 0 0  3 4 2 )
+        ($ 0 0 0  2 0 0  0 0 0 )
+        ($ 0 0 0  4 6 9  1 0 8 )
+
+        ($ 0 0 0  0 0 1  7 0 9 )
+        ($ 0 0 0  7 4 6  0 0 0 )
+        ($ 7 0 8  3 0 0  0 0 0 )
+
+        ($ 3 0 9  6 7 4  0 0 0 )
+        ($ 0 0 0  0 0 0  0 0 0 )
+        ($ 4 1 7  0 0 0  0 2 0 )))
+
+; the 'main' function
+(try
+    (solver.print-sudoku (solver.solve-sudoku test-sudoku))
+    except err (do
+        ; apperantly you are not supposed to use exception for the execution-flow:
+        ; you can pnly identify them by their error message
+        (if (err.error == "Not solvable!")
+            (print err.error) ; print only message
+            (print err)))) ; print stacktrace, too
+
+)
